@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { RoomsModule } from './rooms/room.module';
-import { TimetableModule } from './timetable/timetable.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongooseConfigService } from './config/mongodb/mongo.config';
 import { ConfigModule } from '@nestjs/config';
+import { ReserveModule } from './reserve/reserve.module';
 
 @Module({
   imports: [
@@ -15,7 +15,7 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true,
     }),
     RoomsModule,
-    TimetableModule,
+    ReserveModule,
   ],
 })
 export class AppModule {}

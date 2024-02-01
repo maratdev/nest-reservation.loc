@@ -1,9 +1,12 @@
 import { TRoomType } from '../dto/room.dto';
-import { Document } from 'mongoose';
 
-export interface IRoom extends Document {
+export interface IRoom {
   room_number: number;
   room_type: TRoomType;
   description: string;
   sea_view: boolean;
+}
+
+export interface IRoomWithScheduleStatus extends IRoom {
+  is_reserve: boolean;
 }
