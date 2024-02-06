@@ -7,20 +7,31 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ReserveModel } from './models/reserve.model';
 import { ReserveDto } from './dto/reserve.dto';
-import { IRoom } from '../rooms/interface/room.interface';
 import { GetReserveDto } from './dto/getReserve.dto';
+import { RoomService } from '../rooms/room.service';
 
 @Injectable()
 export class ReserveService {
   constructor(
-    @InjectModel('RoomsModel') private readonly roomsModel: Model<IRoom>,
     @InjectModel('ReserveModel')
     private readonly reserveModel: Model<ReserveModel>,
+    private roomService: RoomService,
   ) {}
+
+  //--------- Вывод всех броней
+  async getAllReserve(): Promise<ReserveModel[]> {
+    const reserveAllData = await this.reserveModel.find();
+    if (!reserveAllData || reserveAllData.length == 0) {
+      throw new NotFoundException();
+    }
+    return reserveAllData;
+  }
 
   //--------- Создание брони
   async createReserve(reserve: ReserveDto): Promise<ReserveModel> {
+    await this.ensureRoomExists(reserve.room_id);
     await this.searchReserveId(reserve);
+
     const createReserve = new this.reserveModel(reserve);
     return createReserve.save();
   }
@@ -30,30 +41,28 @@ export class ReserveService {
     objId: GetReserveDto,
     updateReserveDto: ReserveDto,
   ): Promise<ReserveModel> {
-    await this.searchReserveId(updateReserveDto);
+    await this.ensureRoomExists(updateReserveDto.room_id);
     await this.searchReserveById(objId);
+    await this.searchReserveId(updateReserveDto);
 
-    const existingReserve = await this.reserveModel.findByIdAndUpdate(
-      objId.id,
-      updateReserveDto,
-      { new: true },
-    );
-    if (!existingReserve) {
-      throw new NotFoundException();
-    }
-    return existingReserve;
+    return this.reserveModel.findByIdAndUpdate(objId.id, updateReserveDto, {
+      new: true,
+    });
   }
 
-  async getReserve(dto: GetReserveDto) {
-    const existingReserve = await this.reserveModel.findById(dto.id);
+  //--------- Вывод инфомации о брони
+  async getReserve(dto: GetReserveDto): Promise<ReserveModel> {
+    return this.reserveModel.findById(dto.id);
+  }
 
-    if (!existingReserve) {
-      throw new NotFoundException();
-    }
-    return existingReserve;
+  //--------- Удаление брони
+  async deleteReserve(dto: GetReserveDto): Promise<void> {
+    await this.searchReserveById(dto);
+    await this.reserveModel.findByIdAndDelete(dto.id);
   }
 
   //--------------------- Вспомогательные методы --------------------/
+  //--------- Поиск дубликата брони
   private async searchReserveId(dto: ReserveDto): Promise<boolean> {
     const findReserve = await this.reserveModel.findOne({
       room_id: dto.room_id,
@@ -63,10 +72,18 @@ export class ReserveService {
     return !!findReserve;
   }
 
+  //--------- Поиск брони по Id
   private async searchReserveById(dto: GetReserveDto): Promise<boolean> {
-    const findReserve = await this.reserveModel.findOne({
-      _id: dto.id,
-    });
-    return !!findReserve;
+    const findReserveId = await this.reserveModel.findById(dto.id);
+    if (!findReserveId) throw new NotFoundException();
+    return !!findReserveId;
+  }
+
+  //--------- Поиск брони по Id
+  private async ensureRoomExists(room_id: string) {
+    const roomExists = await this.roomService.findRoomById(room_id);
+    if (!roomExists) {
+      throw new NotFoundException();
+    }
   }
 }

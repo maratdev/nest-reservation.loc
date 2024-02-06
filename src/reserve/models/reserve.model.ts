@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 import { RoomsModel } from '../../rooms/models/room.model';
 
 @Schema({
-  collection: 'reserve',
+  collection: 'reserves',
   versionKey: false,
   timestamps: true,
 })

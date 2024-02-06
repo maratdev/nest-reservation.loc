@@ -16,8 +16,6 @@ export enum RoomTypes {
 export type TRoomType = (typeof RoomTypes)[keyof typeof RoomTypes];
 
 export class RoomDto {
-  @IsString()
-  readonly id: string;
   @IsNumber()
   @IsNotEmpty()
   readonly room_number: number;
@@ -33,11 +31,4 @@ export class RoomDto {
 
   @IsBoolean()
   readonly sea_view: boolean;
-
-  @IsBoolean()
-  readonly is_reserve: boolean;
-}
-
-export class PatchRoomDto extends RoomDto {
-  readonly id: string;
 }

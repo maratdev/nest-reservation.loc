@@ -6,7 +6,3 @@ export interface IRoom {
   description: string;
   sea_view: boolean;
 }
-
-export interface IRoomWithScheduleStatus extends IRoom {
-  is_reserve: boolean;
-}

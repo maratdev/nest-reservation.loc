@@ -6,27 +6,48 @@ import {
   Delete,
   Get,
   HttpStatus,
+  NotFoundException,
   Param,
+  Patch,
   Post,
-  Put,
   Res,
 } from '@nestjs/common';
 import { RoomService } from './room.service';
 import { RoomDto } from './dto/room.dto';
 import {
   MONGO_DUPLICATE_STATUS,
-  RESERVE_UPDATE_SUCCESS,
-  ROOM_ALL_SUCCESS,
   ROOM_CREATED_SUCCESS,
   ROOM_DELETE_SUCCESS,
   ROOM_FOUND_CONFLICT,
   ROOM_NOT_CREATED,
+  ROOM_NOTFOUND,
+  ROOM_UPDATE_SUCCESS,
   SERVER_ERROR,
 } from '../config/constants/constant';
+import { RoomIdDto } from './dto/roomId.dto';
+import { GetReserveDto } from '../reserve/dto/getReserve.dto';
 
 @Controller('rooms')
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
+
+  // -----------------Вывод всех комнат
+
+  @Get('all')
+  async getRoom(@Res() response) {
+    try {
+      const roomData = await this.roomService.getAllRooms();
+      response.status(HttpStatus.OK).json(roomData);
+    } catch (err) {
+      if (err.status === HttpStatus.NOT_FOUND) {
+        throw new NotFoundException(ROOM_NOTFOUND);
+      }
+      return response.status(err?.status).json({
+        statusCode: HttpStatus.BAD_GATEWAY,
+        message: SERVER_ERROR,
+      });
+    }
+  }
 
   // -------------Создание комнаты
   @Post('create')
@@ -52,49 +73,68 @@ export class RoomController {
   }
 
   // -----------------Обновление дынных комнаты по id
-  @Put('/:id')
+  @Patch('/:id')
   async updateRoom(
     @Res() response,
-    @Param('id') roomId: string,
-    @Body() dto: RoomDto,
+    @Param() roomId: RoomIdDto,
+    @Body() updateRoomDto: RoomDto,
   ) {
     try {
-      const existingRoom = await this.roomService.updateRoom(roomId, dto);
+      const existingRoom = await this.roomService.updateRoom(
+        roomId,
+        updateRoomDto,
+      );
       return response.status(HttpStatus.OK).json({
-        message: RESERVE_UPDATE_SUCCESS,
+        message: ROOM_UPDATE_SUCCESS,
         existingRoom,
       });
     } catch (err) {
-      return response.status(err.status).json(err.response);
+      if (err.status === HttpStatus.NOT_FOUND) {
+        throw new NotFoundException(`${ROOM_NOTFOUND} ${roomId.id}`);
+      }
+      if (err?.status === HttpStatus.CONFLICT) {
+        throw new ConflictException(ROOM_FOUND_CONFLICT);
+      }
+      return response.status(err?.status).json({
+        statusCode: HttpStatus.BAD_GATEWAY,
+        message: SERVER_ERROR,
+      });
     }
   }
 
-  // -----------------Вывод всех комнат
-
-  @Get('all')
-  async getRoom(@Res() response) {
+  //--------- Запрос комнаты по id
+  @Get('/:id')
+  async getReserve(@Res() response, @Param() objId: GetReserveDto) {
     try {
-      const roomData = await this.roomService.getAllRooms();
-      return response.status(HttpStatus.OK).json({
-        message: ROOM_ALL_SUCCESS,
-        roomData,
-      });
+      const existingRoom = await this.roomService.getRoom(objId);
+      return response.status(HttpStatus.OK).json(existingRoom);
     } catch (err) {
-      return response.status(err.status).json(err.response);
+      if (err.status === HttpStatus.NOT_FOUND) {
+        throw new NotFoundException(`${ROOM_NOTFOUND} ${objId.id}`);
+      }
+      return response.status(err?.status).json({
+        statusCode: HttpStatus.BAD_GATEWAY,
+        message: SERVER_ERROR,
+      });
     }
   }
 
   // -----------------Удаление комнаты по id
   @Delete('/:id')
-  async deleteRoom(@Res() response, @Param('id') roomId: string) {
+  async deleteRoom(@Res() response, @Param() roomId: RoomIdDto) {
     try {
-      const deletedRoom = await this.roomService.deleteRoom(roomId);
+      await this.roomService.deleteRoom(roomId);
       return response.status(HttpStatus.OK).json({
-        message: ROOM_DELETE_SUCCESS,
-        deletedRoom,
+        message: `${ROOM_DELETE_SUCCESS} ${roomId.id}`,
       });
     } catch (err) {
-      return response.status(err.status).json(err.response);
+      if (err.status === HttpStatus.NOT_FOUND) {
+        throw new NotFoundException(`${ROOM_NOTFOUND} ${roomId.id}`);
+      }
+      return response.status(err?.status).json({
+        statusCode: HttpStatus.BAD_GATEWAY,
+        message: SERVER_ERROR,
+      });
     }
   }
 }
