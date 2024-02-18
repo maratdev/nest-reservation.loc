@@ -4,7 +4,9 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   HttpStatus,
+  Inject,
   NotFoundException,
   Param,
   Patch,
@@ -13,22 +15,15 @@ import {
 } from '@nestjs/common';
 import { ReserveService } from './reserve.service';
 import { ReserveDto } from './dto/reserve.dto';
-import { GetReserveDto } from './dto/getReserve.dto';
-import {
-  RESERVE_CONFLICT,
-  RESERVE_CREATED_SUCCESS,
-  RESERVE_DELETED,
-  RESERVE_FOUND_SUCCESS,
-  RESERVE_NOTFOUND,
-  RESERVE_UPDATE_CONFLICT,
-  RESERVE_UPDATE_SUCCESS,
-  ROOM_NOTFOUND,
-  SERVER_ERROR,
-} from '../config/constants/constant';
+import { GetIdReserveDto } from './dto/reserve-id.dto';
+import { RESERVE } from './constants';
+import { ROOM } from '../rooms/constants';
+import { STATUS } from '../config/constants/default';
 
 @Controller('reserve')
 export class ReserveController {
-  constructor(private readonly reserveService: ReserveService) {}
+  @Inject()
+  private readonly reserveService: ReserveService;
 
   //--------- Вывод всех броней
   @Get('all')
@@ -37,13 +32,15 @@ export class ReserveController {
       const allReserve = await this.reserveService.getAllReserve();
       response.status(HttpStatus.OK).json(allReserve);
     } catch (err) {
-      if (err.status === HttpStatus.NOT_FOUND) {
-        throw new NotFoundException(RESERVE_NOTFOUND);
+      if (err instanceof HttpException) {
+        if (err.getStatus() === HttpStatus.NOT_FOUND) {
+          throw new NotFoundException(RESERVE.NOTFOUND);
+        }
+        return response.status(err.getStatus()).json({
+          statusCode: HttpStatus.BAD_GATEWAY,
+          message: STATUS.SERVER_ERROR,
+        });
       }
-      return response.status(err?.status).json({
-        statusCode: HttpStatus.BAD_GATEWAY,
-        message: SERVER_ERROR,
-      });
     }
   }
 
@@ -53,19 +50,21 @@ export class ReserveController {
     try {
       const newReserve = await this.reserveService.createReserve(dto);
       return response.status(HttpStatus.CREATED).json({
-        message: RESERVE_CREATED_SUCCESS,
+        message: RESERVE.CREATED_SUCCESS,
         newReserve,
       });
     } catch (err) {
-      if (err.status === HttpStatus.CONFLICT) {
-        throw new ConflictException(RESERVE_CONFLICT);
+      if (err instanceof HttpException) {
+        if (err.getStatus() === HttpStatus.CONFLICT) {
+          throw new ConflictException(RESERVE.CONFLICT);
+        }
+        if (err.getStatus() === HttpStatus.NOT_FOUND) {
+          throw new NotFoundException(`${ROOM.NOTFOUND} ${dto.room_id}`);
+        }
       }
-      if (err.status === HttpStatus.NOT_FOUND) {
-        throw new NotFoundException(`${ROOM_NOTFOUND} ${dto.room_id}`);
-      }
-      return response.status(err?.status).json({
+      return response.status(HttpStatus.BAD_GATEWAY).json({
         statusCode: HttpStatus.BAD_GATEWAY,
-        message: SERVER_ERROR,
+        message: STATUS.SERVER_ERROR,
       });
     }
   }
@@ -74,7 +73,7 @@ export class ReserveController {
   @Patch('/:id')
   async updateReserve(
     @Res() response,
-    @Param() objId: GetReserveDto,
+    @Param() objId: GetIdReserveDto,
     @Body() updateReserveDto: ReserveDto,
   ) {
     try {
@@ -83,63 +82,66 @@ export class ReserveController {
         updateReserveDto,
       );
       return response.status(HttpStatus.OK).json({
-        message: RESERVE_UPDATE_SUCCESS,
+        message: RESERVE.UPDATE_SUCCESS,
         existingReserve,
       });
     } catch (err) {
-      if (err.status === HttpStatus.NOT_FOUND) {
-        throw new NotFoundException(
-          `${RESERVE_NOTFOUND} ${objId.id} or ${updateReserveDto.room_id}`,
-        );
-      }
+      if (err instanceof HttpException) {
+        if (err.getStatus() === HttpStatus.NOT_FOUND) {
+          throw new NotFoundException(`${RESERVE.NOTFOUND} ${err.message}`);
+        }
 
-      if (err?.status === HttpStatus.CONFLICT) {
-        throw new ConflictException(RESERVE_UPDATE_CONFLICT);
-      }
+        if (err.getStatus() === HttpStatus.CONFLICT) {
+          throw new ConflictException(
+            `${RESERVE.UPDATE_CONFLICT} ${err.getResponse()}`,
+          );
+        }
 
-      return response.status(err?.status).json({
-        statusCode: HttpStatus.BAD_GATEWAY,
-        message: SERVER_ERROR,
-      });
+        return response.status(err.getStatus()).json({
+          statusCode: HttpStatus.BAD_GATEWAY,
+          message: STATUS.SERVER_ERROR,
+        });
+      }
     }
   }
 
   //--------- Запрос брони по id
   @Get('/:id')
-  async getReserve(@Res() response, @Param() objId: GetReserveDto) {
+  async getReserve(@Res() response, @Param() objId: GetIdReserveDto) {
     try {
       const existingReserve = await this.reserveService.getReserve(objId);
-      return response.status(HttpStatus.OK).json({
-        message: RESERVE_FOUND_SUCCESS,
-        existingReserve,
-      });
+      return response.status(HttpStatus.OK).json(existingReserve);
     } catch (err) {
-      if (err.status === HttpStatus.NOT_FOUND) {
-        throw new NotFoundException(`${RESERVE_NOTFOUND} ${objId.id}`);
+      if (err instanceof HttpException) {
+        if (err.getStatus() === HttpStatus.NOT_FOUND) {
+          throw new NotFoundException(`${RESERVE.NOTFOUND} ${objId.id}`);
+        }
+        return response.status(err.getStatus()).json({
+          statusCode: HttpStatus.BAD_GATEWAY,
+          message: STATUS.SERVER_ERROR,
+        });
       }
-      return response.status(err?.status).json({
-        statusCode: HttpStatus.BAD_GATEWAY,
-        message: SERVER_ERROR,
-      });
     }
   }
 
   //--------- Удаление брони по id
   @Delete('/:id')
-  async deleteReserve(@Res() response, @Param() objId: GetReserveDto) {
+  async deleteReserve(@Res() response, @Param() objId: GetIdReserveDto) {
     try {
       await this.reserveService.deleteReserve(objId);
       return response.status(HttpStatus.OK).json({
-        message: `${RESERVE_DELETED} ${objId.id}`,
+        message: `${RESERVE.DELETED} ${objId.id}`,
       });
     } catch (err) {
-      if (err.status === HttpStatus.NOT_FOUND) {
-        throw new NotFoundException(`${RESERVE_NOTFOUND} ${objId.id}`);
+      if (err instanceof HttpException) {
+        if (err.getStatus() === HttpStatus.NOT_FOUND) {
+          throw new NotFoundException(`${RESERVE.NOTFOUND} ${objId.id}`);
+        }
+        return response.status(err.getStatus()).json({
+          statusCode: HttpStatus.BAD_GATEWAY,
+          message: STATUS.SERVER_ERROR,
+        });
       }
-      return response.status(err?.status).json({
-        statusCode: HttpStatus.BAD_GATEWAY,
-        message: SERVER_ERROR,
-      });
     }
   }
 }

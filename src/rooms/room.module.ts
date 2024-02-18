@@ -1,24 +1,20 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { RoomsSchema } from './models/room.model';
+import { RoomsModel, RoomsSchema } from './models/room.model';
 import { RoomService } from './room.service';
 import { RoomController } from './room.controller';
-import { ReserveSchema } from '../reserve/models/reserve.model';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       {
-        name: 'RoomsModel',
+        name: RoomsModel.name,
         schema: RoomsSchema,
-      },
-      {
-        name: 'ReserveModel',
-        schema: ReserveSchema,
       },
     ]),
   ],
   providers: [RoomService],
+  exports: [RoomService],
   controllers: [RoomController],
 })
 export class RoomsModule {}

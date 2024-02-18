@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsString,
@@ -7,10 +8,10 @@ import {
 } from 'class-validator';
 
 export enum RoomTypes {
-  OneRoom = 'Одна комната',
-  TwoRooms = 'Две комнаты',
-  ThreeRooms = 'Три комнаты',
-  FourRooms = 'Четыре комнаты',
+  OneRoom = 1,
+  TwoRooms,
+  ThreeRooms,
+  FourRooms,
 }
 
 export type TRoomType = (typeof RoomTypes)[keyof typeof RoomTypes];
@@ -20,8 +21,9 @@ export class RoomDto {
   @IsNotEmpty()
   readonly room_number: number;
 
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
+  @IsEnum(RoomTypes)
   readonly room_type: TRoomType;
 
   @IsString()

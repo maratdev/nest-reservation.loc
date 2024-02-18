@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { RoomTypes, TRoomType } from '../dto/room.dto';
 
 @Schema({
   collection: 'rooms',
@@ -10,15 +11,20 @@ export class RoomsModel extends Document {
   @Prop({
     required: true,
     unique: true,
+    max: 31,
+    min: 1,
   })
   room_number: number;
 
   @Prop({
     required: true,
+    enum: RoomTypes,
   })
-  room_type: string;
+  room_type: TRoomType;
 
-  @Prop()
+  @Prop({
+    maxlength: 50,
+  })
   description: string;
 
   @Prop({

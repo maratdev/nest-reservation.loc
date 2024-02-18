@@ -1,25 +1,21 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ReserveSchema } from './models/reserve.model';
+import { ReserveModel, ReserveSchema } from './models/reserve.model';
 import { ReserveService } from './reserve.service';
 import { ReserveController } from './reserve.controller';
-import { RoomService } from '../rooms/room.service';
-import { RoomsSchema } from '../rooms/models/room.model';
+import { RoomsModule } from '../rooms/room.module';
 
 @Module({
   imports: [
+    RoomsModule,
     MongooseModule.forFeature([
       {
-        name: 'ReserveModel',
+        name: ReserveModel.name,
         schema: ReserveSchema,
-      },
-      {
-        name: 'RoomsModel',
-        schema: RoomsSchema,
       },
     ]),
   ],
-  providers: [ReserveService, RoomService],
+  providers: [ReserveService],
   controllers: [ReserveController],
 })
 export class ReserveModule {}

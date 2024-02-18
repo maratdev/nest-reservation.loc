@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { RoomDto } from './dto/room.dto';
 import { RoomsModel } from './models/room.model';
 import { RoomIdDto } from './dto/roomId.dto';
@@ -12,7 +12,8 @@ import { RoomIdDto } from './dto/roomId.dto';
 @Injectable()
 export class RoomService {
   constructor(
-    @InjectModel('RoomsModel') private readonly roomsModel: Model<RoomsModel>,
+    @InjectModel(RoomsModel.name)
+    private readonly roomsModel: Model<RoomsModel>,
   ) {}
 
   // -----------------Вывод всех комнат
@@ -26,6 +27,7 @@ export class RoomService {
 
   // -------------Создание комнаты
   async createRoom(room: RoomDto): Promise<RoomsModel> {
+    await this.searchDuplicateRoomNumber(room);
     const createdNote = new this.roomsModel(room);
     return createdNote.save();
   }
@@ -35,36 +37,35 @@ export class RoomService {
     roomId: RoomIdDto,
     updateRoomDto: RoomDto,
   ): Promise<RoomsModel> {
-    console.log(roomId);
-    await this.findRoomById(roomId.id);
-    await this.searchRoomId(updateRoomDto);
+    await this.checkRoomById(new Types.ObjectId(roomId.id));
     return this.roomsModel.findByIdAndUpdate(roomId.id, updateRoomDto, {
       new: true,
     });
   }
 
-  //--------- Вывод инфомации о комнате
+  //--------- Вывод информации о комнате
   async getRoom(dto: RoomIdDto): Promise<RoomsModel> {
-    await this.findRoomById(dto.id);
+    await this.checkRoomById(new Types.ObjectId(dto.id));
     return this.roomsModel.findById(dto.id);
   }
 
   // -----------------Удаление комнаты
   async deleteRoom(roomId: RoomIdDto): Promise<void> {
-    await this.findRoomById(roomId.id);
+    await this.checkRoomById(new Types.ObjectId(roomId.id));
     await this.roomsModel.findByIdAndDelete(roomId.id);
   }
 
   //--------------------- Вспомогательные методы --------------------/
   // -----------------Поиск комнаты по id
-  public async findRoomById(id: string): Promise<boolean> {
-    const findRoom = await this.roomsModel.findById(id);
-    if (!findRoom) throw new NotFoundException();
+  public async checkRoomById(id: Types.ObjectId): Promise<boolean> {
+    const findRoom = await this.roomsModel.findById(new Types.ObjectId(id));
+    if (!findRoom)
+      throw new NotFoundException(new Types.ObjectId(id).toString());
     return !!findRoom;
   }
 
   //--------- Поиск дубликата комнаты
-  private async searchRoomId(dto: RoomDto): Promise<boolean> {
+  private async searchDuplicateRoomNumber(dto: RoomDto): Promise<boolean> {
     const findReserve = await this.roomsModel.findOne({
       room_number: dto.room_number,
     });

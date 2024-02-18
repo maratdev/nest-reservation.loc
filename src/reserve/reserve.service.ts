@@ -4,16 +4,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ReserveModel } from './models/reserve.model';
 import { ReserveDto } from './dto/reserve.dto';
-import { GetReserveDto } from './dto/getReserve.dto';
+import { GetIdReserveDto } from './dto/reserve-id.dto';
 import { RoomService } from '../rooms/room.service';
 
 @Injectable()
 export class ReserveService {
   constructor(
-    @InjectModel('ReserveModel')
+    @InjectModel(ReserveModel.name)
     private readonly reserveModel: Model<ReserveModel>,
     private roomService: RoomService,
   ) {}
@@ -29,8 +29,8 @@ export class ReserveService {
 
   //--------- Создание брони
   async createReserve(reserve: ReserveDto): Promise<ReserveModel> {
-    await this.ensureRoomExists(reserve.room_id);
-    await this.searchReserveId(reserve);
+    await this.roomService.checkRoomById(new Types.ObjectId(reserve.room_id));
+    await this.checkDuplicateReserve(reserve);
 
     const createReserve = new this.reserveModel(reserve);
     return createReserve.save();
@@ -38,52 +38,47 @@ export class ReserveService {
 
   //--------- Обновление брони
   async updateReserve(
-    objId: GetReserveDto,
+    objId: GetIdReserveDto,
     updateReserveDto: ReserveDto,
   ): Promise<ReserveModel> {
-    await this.ensureRoomExists(updateReserveDto.room_id);
-    await this.searchReserveById(objId);
-    await this.searchReserveId(updateReserveDto);
+    await this.checkReserveById(objId);
+    await this.roomService.checkRoomById(
+      new Types.ObjectId(updateReserveDto.room_id),
+    );
+    await this.checkDuplicateReserve(updateReserveDto);
 
     return this.reserveModel.findByIdAndUpdate(objId.id, updateReserveDto, {
       new: true,
     });
   }
 
-  //--------- Вывод инфомации о брони
-  async getReserve(dto: GetReserveDto): Promise<ReserveModel> {
+  //--------- Вывод информации о брони
+  async getReserve(dto: GetIdReserveDto): Promise<ReserveModel> {
+    await this.checkReserveById(dto);
     return this.reserveModel.findById(dto.id);
   }
 
   //--------- Удаление брони
-  async deleteReserve(dto: GetReserveDto): Promise<void> {
-    await this.searchReserveById(dto);
+  async deleteReserve(dto: GetIdReserveDto): Promise<void> {
+    await this.checkReserveById(dto);
     await this.reserveModel.findByIdAndDelete(dto.id);
   }
 
   //--------------------- Вспомогательные методы --------------------/
   //--------- Поиск дубликата брони
-  private async searchReserveId(dto: ReserveDto): Promise<boolean> {
+  private async checkDuplicateReserve(dto: ReserveDto): Promise<boolean> {
     const findReserve = await this.reserveModel.findOne({
       room_id: dto.room_id,
       checkInDate: dto.checkInDate,
     });
-    if (findReserve) throw new ConflictException();
+    if (findReserve) throw new ConflictException(dto.checkInDate);
     return !!findReserve;
   }
 
   //--------- Поиск брони по Id
-  private async searchReserveById(dto: GetReserveDto): Promise<boolean> {
+  private async checkReserveById(dto: GetIdReserveDto): Promise<boolean> {
     const findReserveId = await this.reserveModel.findById(dto.id);
-    if (!findReserveId) throw new NotFoundException();
+    if (!findReserveId) throw new NotFoundException(dto.id);
     return !!findReserveId;
-  }
-
-  //--------- Поиск брони по Id
-  private async ensureRoomExists(room_id: string) {
-    const roomExists = await this.roomService.findRoomById(room_id);
-    if (!roomExists) {
-      throw new NotFoundException();
-    }
   }
 }

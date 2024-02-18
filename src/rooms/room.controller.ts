@@ -5,6 +5,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   HttpStatus,
   NotFoundException,
   Param,
@@ -14,18 +15,11 @@ import {
 } from '@nestjs/common';
 import { RoomService } from './room.service';
 import { RoomDto } from './dto/room.dto';
-import {
-  MONGO_DUPLICATE_STATUS,
-  ROOM_CREATED_SUCCESS,
-  ROOM_DELETE_SUCCESS,
-  ROOM_FOUND_CONFLICT,
-  ROOM_NOT_CREATED,
-  ROOM_NOTFOUND,
-  ROOM_UPDATE_SUCCESS,
-  SERVER_ERROR,
-} from '../config/constants/constant';
 import { RoomIdDto } from './dto/roomId.dto';
-import { GetReserveDto } from '../reserve/dto/getReserve.dto';
+import { GetIdReserveDto } from '../reserve/dto/reserve-id.dto';
+import { STATUS } from '../config/constants/default';
+import { ROOM } from './constants';
+import { MongoError } from 'mongodb';
 
 @Controller('rooms')
 export class RoomController {
@@ -34,17 +28,19 @@ export class RoomController {
   // -----------------Вывод всех комнат
 
   @Get('all')
-  async getRoom(@Res() response) {
+  async getAllRoom(@Res() response) {
     try {
       const roomData = await this.roomService.getAllRooms();
       response.status(HttpStatus.OK).json(roomData);
     } catch (err) {
-      if (err.status === HttpStatus.NOT_FOUND) {
-        throw new NotFoundException(ROOM_NOTFOUND);
+      if (err instanceof HttpException) {
+        if (err.getStatus() === HttpStatus.NOT_FOUND) {
+          throw new NotFoundException(ROOM.NOTFOUND);
+        }
       }
-      return response.status(err?.status).json({
+      return response.status(HttpStatus.BAD_GATEWAY).json({
         statusCode: HttpStatus.BAD_GATEWAY,
-        message: SERVER_ERROR,
+        message: STATUS.SERVER_ERROR,
       });
     }
   }
@@ -55,19 +51,24 @@ export class RoomController {
     try {
       const newRoom = await this.roomService.createRoom(dto);
       return response.status(HttpStatus.CREATED).json({
-        message: ROOM_CREATED_SUCCESS,
+        message: ROOM.CREATED_SUCCESS,
         newRoom,
       });
     } catch (err) {
-      if (err.code === MONGO_DUPLICATE_STATUS) {
-        throw new ConflictException(ROOM_FOUND_CONFLICT);
+      if (err instanceof HttpException) {
+        if (err.getStatus() === HttpStatus.BAD_REQUEST) {
+          throw new BadRequestException(ROOM.NOT_CREATED);
+        }
+        if (err.getStatus() === HttpStatus.CONFLICT) {
+          throw new ConflictException(
+            `${ROOM.FOUND_CONFLICT} ${dto.room_number}`,
+          );
+        }
       }
-      if (err.code === HttpStatus.BAD_REQUEST) {
-        throw new BadRequestException(ROOM_NOT_CREATED);
-      }
+
       return response.status(HttpStatus.BAD_GATEWAY).json({
         statusCode: HttpStatus.BAD_GATEWAY,
-        message: SERVER_ERROR,
+        message: STATUS.SERVER_ERROR,
       });
     }
   }
@@ -85,36 +86,44 @@ export class RoomController {
         updateRoomDto,
       );
       return response.status(HttpStatus.OK).json({
-        message: ROOM_UPDATE_SUCCESS,
+        message: ROOM.UPDATE_SUCCESS,
         existingRoom,
       });
     } catch (err) {
-      if (err.status === HttpStatus.NOT_FOUND) {
-        throw new NotFoundException(`${ROOM_NOTFOUND} ${roomId.id}`);
+      if (err instanceof MongoError) {
+        if (err.code === 11000) {
+          throw new ConflictException(
+            `${ROOM.FOUND_CONFLICT} ${updateRoomDto.room_number}`,
+          );
+        }
       }
-      if (err?.status === HttpStatus.CONFLICT) {
-        throw new ConflictException(ROOM_FOUND_CONFLICT);
+      if (err instanceof HttpException) {
+        if (err.getStatus() === HttpStatus.NOT_FOUND) {
+          throw new NotFoundException(`${ROOM.NOTFOUND} ${roomId.id}`);
+        }
       }
-      return response.status(err?.status).json({
+      return response.status(HttpStatus.BAD_GATEWAY).json({
         statusCode: HttpStatus.BAD_GATEWAY,
-        message: SERVER_ERROR,
+        message: STATUS.SERVER_ERROR,
       });
     }
   }
 
   //--------- Запрос комнаты по id
   @Get('/:id')
-  async getReserve(@Res() response, @Param() objId: GetReserveDto) {
+  async getReserve(@Res() response, @Param() objId: GetIdReserveDto) {
     try {
       const existingRoom = await this.roomService.getRoom(objId);
       return response.status(HttpStatus.OK).json(existingRoom);
     } catch (err) {
-      if (err.status === HttpStatus.NOT_FOUND) {
-        throw new NotFoundException(`${ROOM_NOTFOUND} ${objId.id}`);
+      if (err instanceof HttpException) {
+        if (err.getStatus() === HttpStatus.NOT_FOUND) {
+          throw new NotFoundException(`${ROOM.NOTFOUND} ${objId.id}`);
+        }
       }
-      return response.status(err?.status).json({
+      return response.status(HttpStatus.BAD_GATEWAY).json({
         statusCode: HttpStatus.BAD_GATEWAY,
-        message: SERVER_ERROR,
+        message: STATUS.SERVER_ERROR,
       });
     }
   }
@@ -125,15 +134,17 @@ export class RoomController {
     try {
       await this.roomService.deleteRoom(roomId);
       return response.status(HttpStatus.OK).json({
-        message: `${ROOM_DELETE_SUCCESS} ${roomId.id}`,
+        message: `${ROOM.DELETE_SUCCESS} ${roomId.id}`,
       });
     } catch (err) {
-      if (err.status === HttpStatus.NOT_FOUND) {
-        throw new NotFoundException(`${ROOM_NOTFOUND} ${roomId.id}`);
+      if (err instanceof HttpException) {
+        if (err.getStatus() === HttpStatus.NOT_FOUND) {
+          throw new NotFoundException(`${ROOM.NOTFOUND} ${roomId.id}`);
+        }
       }
-      return response.status(err?.status).json({
+      return response.status(HttpStatus.BAD_GATEWAY).json({
         statusCode: HttpStatus.BAD_GATEWAY,
-        message: SERVER_ERROR,
+        message: STATUS.SERVER_ERROR,
       });
     }
   }

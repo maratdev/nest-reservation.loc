@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { BadRequestException } from '@nestjs/common';
-import { ID_VALIDATION_FAIL } from '../constants/constant';
+import { STATUS } from '../constants/default';
 
 export const SafeMongoIdTransform = ({ value }) => {
   try {
@@ -11,6 +11,6 @@ export const SafeMongoIdTransform = ({ value }) => {
       return value;
     }
   } catch (error) {
-    throw new BadRequestException(ID_VALIDATION_FAIL);
+    throw new BadRequestException(STATUS.ID_VALIDATION_FAIL);
   }
 };

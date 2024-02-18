@@ -1,9 +1,10 @@
-import { IsNotEmpty, IsNumber, IsString, Max } from 'class-validator';
+import { IsMongoId, IsNotEmpty, IsNumber, Max } from 'class-validator';
+import { Types } from 'mongoose';
 
 export class ReserveDto {
-  @IsString()
+  @IsMongoId()
   @IsNotEmpty()
-  readonly room_id: string;
+  readonly room_id: Types.ObjectId;
 
   @IsNumber()
   @IsNotEmpty()
