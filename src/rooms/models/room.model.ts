@@ -32,6 +32,11 @@ export class RoomsModel extends Document {
     default: false,
   })
   sea_view: boolean;
+
+  @Prop({
+    default: false,
+  })
+  is_delete?: boolean;
 }
 
 export const RoomsSchema = SchemaFactory.createForClass(RoomsModel);

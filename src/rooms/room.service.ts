@@ -27,7 +27,7 @@ export class RoomService {
 
   // -------------Создание комнаты
   async createRoom(room: RoomDto): Promise<RoomsModel> {
-    await this.searchDuplicateRoomNumber(room);
+    await this.checkDuplicateRoomNumber(room);
     const createdNote = new this.roomsModel(room);
     return createdNote.save();
   }
@@ -52,24 +52,33 @@ export class RoomService {
   // -----------------Удаление комнаты
   async deleteRoom(roomId: RoomIdDto): Promise<void> {
     await this.checkRoomById(new Types.ObjectId(roomId.id));
-    await this.roomsModel.findByIdAndDelete(roomId.id);
+    return this.roomsModel.findByIdAndUpdate(
+      roomId.id,
+      { is_delete: true },
+      {
+        new: true,
+      },
+    );
   }
 
   //--------------------- Вспомогательные методы --------------------/
   // -----------------Поиск комнаты по id
   public async checkRoomById(id: Types.ObjectId): Promise<boolean> {
-    const findRoom = await this.roomsModel.findById(new Types.ObjectId(id));
-    if (!findRoom)
+    const checkRoom = await this.roomsModel.findOne({
+      _id: new Types.ObjectId(id),
+      is_delete: false,
+    });
+    if (!checkRoom)
       throw new NotFoundException(new Types.ObjectId(id).toString());
-    return !!findRoom;
+    return !!checkRoom;
   }
 
   //--------- Поиск дубликата комнаты
-  private async searchDuplicateRoomNumber(dto: RoomDto): Promise<boolean> {
-    const findReserve = await this.roomsModel.findOne({
+  private async checkDuplicateRoomNumber(dto: RoomDto): Promise<boolean> {
+    const checkReserve = await this.roomsModel.findOne({
       room_number: dto.room_number,
     });
-    if (findReserve) throw new ConflictException();
-    return !!findReserve;
+    if (checkReserve) throw new ConflictException();
+    return !!checkReserve;
   }
 }

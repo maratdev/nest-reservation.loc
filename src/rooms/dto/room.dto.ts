@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
@@ -33,4 +34,8 @@ export class RoomDto {
 
   @IsBoolean()
   readonly sea_view: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  readonly is_delete?: boolean;
 }

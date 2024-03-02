@@ -38,16 +38,16 @@ export class ReserveService {
 
   //--------- Обновление брони
   async updateReserve(
-    objId: GetIdReserveDto,
+    idDto: GetIdReserveDto,
     updateReserveDto: ReserveDto,
   ): Promise<ReserveModel> {
-    await this.checkReserveById(objId);
+    await this.checkReserveById(idDto);
     await this.roomService.checkRoomById(
       new Types.ObjectId(updateReserveDto.room_id),
     );
     await this.checkDuplicateReserve(updateReserveDto);
 
-    return this.reserveModel.findByIdAndUpdate(objId.id, updateReserveDto, {
+    return this.reserveModel.findByIdAndUpdate(idDto.id, updateReserveDto, {
       new: true,
     });
   }
