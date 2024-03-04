@@ -1,10 +1,18 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { RoomsModule } from './rooms/room.module';
+import { MongooseModule } from '@nestjs/mongoose';
+import { MongooseConfigService } from './config/mongodb/mongo.config';
+import { ReserveModule } from './reserve/reserve.module';
+import { ConfigAppModule } from './config/core/config-app.module';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    MongooseModule.forRootAsync({
+      useClass: MongooseConfigService,
+    }),
+    ConfigAppModule,
+    RoomsModule,
+    ReserveModule,
+  ],
 })
 export class AppModule {}
