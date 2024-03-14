@@ -37,6 +37,7 @@ export class RoomDto {
   readonly description: string;
 
   @IsBoolean()
+  @IsNotEmpty()
   readonly sea_view: boolean;
 
   @IsBoolean()

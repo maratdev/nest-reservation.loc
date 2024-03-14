@@ -6,7 +6,7 @@ import { RoomDto } from '../src/rooms/dto/room.dto';
 import { disconnect, Types } from 'mongoose';
 import { RoomIdDto } from '../src/rooms/dto/roomId.dto';
 
-describe('AppController (e2e)', () => {
+describe('RoomsController (e2e)', () => {
   let app: INestApplication;
   let roomId: string;
 
@@ -17,6 +17,7 @@ describe('AppController (e2e)', () => {
     sea_view: Boolean(Math.round(Math.random())),
   };
   const randomId = new Types.ObjectId().toHexString();
+  const errorId = '65f369b4bbf22dc63233144dd';
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -27,7 +28,6 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  // -------------Создание комнаты
   describe('Default tests', () => {
     it('/rooms/create (POST) - success 201', async () => {
       return request(app.getHttpServer())
@@ -39,18 +39,6 @@ describe('AppController (e2e)', () => {
           expect(roomId).toBeDefined();
           return;
         });
-    });
-
-    it('/rooms/create (POST) 400 validation error', async () => {
-      await request(app.getHttpServer())
-        .post('/rooms/create')
-        .send({
-          room_number: 1,
-          room_type: 5,
-          description: 'Default tests',
-          sea_view: false,
-        })
-        .expect(200);
     });
 
     describe('Вывод информации о комнате', () => {
@@ -65,8 +53,8 @@ describe('AppController (e2e)', () => {
           });
       });
 
-      it('/rooms/:id (GET) - fail 404', async () => {
-        await request(app.getHttpServer())
+      it('/rooms/:id (GET) - fail 404', () => {
+        return request(app.getHttpServer())
           .get(`/room/${randomId}`)
           .send(testDto)
           .expect(404);
@@ -74,20 +62,20 @@ describe('AppController (e2e)', () => {
     });
 
     describe('Обновление дынных комнаты по id', () => {
-      it('rooms/:id (PATCH) - success 200', async () => {
+      it('/rooms/:id (PATCH) - success 200', async () => {
         const patchDto: RoomIdDto = {
           id: new Types.ObjectId(roomId),
           ...testDto,
           description: 'тест пройден!',
         };
 
-        return request(app.getHttpServer())
+        await request(app.getHttpServer())
           .patch('/rooms/' + roomId)
           .send(patchDto)
           .expect(200);
       });
 
-      it('rooms/:id (PATCH) - fail 404', async () => {
+      it('/rooms/:id (PATCH) - fail 404', async () => {
         const patchDto: RoomIdDto = {
           id: new Types.ObjectId(roomId),
           ...testDto,
@@ -102,21 +90,21 @@ describe('AppController (e2e)', () => {
     });
 
     describe('Удаление комнаты по id', () => {
-      it('rooms/:id (DELETE) - success 200', async () => {
-        await request(app.getHttpServer())
+      it('/rooms/:id (DELETE) - success 200', () => {
+        return request(app.getHttpServer())
           .delete('/rooms/' + roomId)
           .expect(200);
       });
 
-      it('/rooms/:id (DELETE) - fail 404', async () => {
-        await request(app.getHttpServer())
+      it('/rooms/:id (DELETE) - fail 404', () => {
+        return request(app.getHttpServer())
           .delete('/rooms/' + randomId)
           .expect(404);
       });
     });
 
     // -----------------Вывод всех комнат
-    it('rooms/all (GET)  - success 200', async () => {
+    it('/rooms/all (GET)  - success 200', async () => {
       await request(app.getHttpServer())
         .get('/rooms/all')
         .expect(200)
@@ -124,6 +112,45 @@ describe('AppController (e2e)', () => {
           expect(body.length > 0).toBe(true);
           return;
         });
+    });
+    describe('Ошибки валидации', () => {
+      it('rooms/create (POST) 400 validation error (room_type)', () => {
+        return request(app.getHttpServer())
+          .post('/rooms/create')
+          .send({
+            ...testDto,
+            room_number: 1,
+            room_type: 5,
+          })
+          .expect(400);
+      });
+      it('/rooms/create (POST) 400 validation error (sea_view)', () => {
+        return request(app.getHttpServer())
+          .post('/rooms/create')
+          .send({
+            ...testDto,
+            sea_view: 'not_boolean',
+          })
+          .expect(400);
+      });
+      it('/rooms/create (POST) 400 validation error (room_number)', () => {
+        return request(app.getHttpServer())
+          .post('/rooms/create')
+          .send({
+            ...testDto,
+            room_number: 32,
+          })
+          .expect(400);
+      });
+
+      it('/rooms (GET) 400 id must be a mongodb id', () => {
+        return request(app.getHttpServer()).get('/rooms/0').expect(400);
+      });
+      it('/rooms (GET) 400 validation error (errorId)', () => {
+        return request(app.getHttpServer())
+          .get('/rooms/' + errorId)
+          .expect(400);
+      });
     });
   });
   afterAll(() => disconnect());

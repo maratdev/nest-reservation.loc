@@ -12,6 +12,8 @@ import {
   Patch,
   Post,
   Res,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { RoomService } from './room.service';
 import { RoomDto } from './dto/room.dto';
@@ -20,12 +22,12 @@ import { STATUS } from '../config/constants/default';
 import { ROOM } from './constants';
 import { MongoError } from 'mongodb';
 
+@UsePipes(new ValidationPipe())
 @Controller('rooms')
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
 
   // -----------------Вывод всех комнат
-
   @Get('all')
   async getAllRoom(@Res() response) {
     try {
