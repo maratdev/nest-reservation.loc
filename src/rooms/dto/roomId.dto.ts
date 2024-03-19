@@ -1,13 +1,13 @@
-import { IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsMongoId, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { SafeMongoIdTransform } from '../../config/filter/mongo-exception.filter';
 import { Types } from 'mongoose';
+import { PartialType } from '@nestjs/swagger';
+import { RoomDto } from './room.dto';
 
-export class RoomIdDto {
+export class RoomIdDto extends PartialType(RoomDto) {
   @IsMongoId()
   @IsString()
   @Transform((value) => SafeMongoIdTransform(value))
   id: Types.ObjectId;
-  @IsOptional()
-  description?: string;
 }

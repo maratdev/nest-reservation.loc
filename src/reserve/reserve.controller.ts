@@ -12,6 +12,8 @@ import {
   Patch,
   Post,
   Res,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ReserveService } from './reserve.service';
 import { ReserveDto } from './dto/reserve.dto';
@@ -26,6 +28,7 @@ export class ReserveController {
   private readonly reserveService: ReserveService;
 
   //--------- Вывод всех броней
+  @UsePipes(new ValidationPipe())
   @Get('all')
   async getAllReserve(@Res() response) {
     try {

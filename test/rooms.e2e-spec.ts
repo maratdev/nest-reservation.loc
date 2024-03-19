@@ -6,16 +6,17 @@ import { RoomDto } from '../src/rooms/dto/room.dto';
 import { disconnect, Types } from 'mongoose';
 import { RoomIdDto } from '../src/rooms/dto/roomId.dto';
 
+export const roomTestDto: RoomDto = {
+  room_number: Math.floor(Math.random() * 31) + 1,
+  room_type: Math.floor(Math.random() * 4) + 1,
+  description: 'Default tests',
+  sea_view: Boolean(Math.round(Math.random())),
+};
+
 describe('RoomsController (e2e)', () => {
   let app: INestApplication;
   let roomId: string;
 
-  const testDto: RoomDto = {
-    room_number: Math.floor(Math.random() * 31) + 1,
-    room_type: Math.floor(Math.random() * 4) + 1,
-    description: 'Default tests',
-    sea_view: Boolean(Math.round(Math.random())),
-  };
   const randomId = new Types.ObjectId().toHexString();
   const errorId = '65f369b4bbf22dc63233144dd';
 
@@ -32,7 +33,7 @@ describe('RoomsController (e2e)', () => {
     it('/rooms/create (POST) - success 201', async () => {
       return request(app.getHttpServer())
         .post('/rooms/create')
-        .send(testDto)
+        .send(roomTestDto)
         .expect(201)
         .then(({ body }: request.Response) => {
           roomId = body.newRoom._id;
@@ -45,7 +46,7 @@ describe('RoomsController (e2e)', () => {
       it('/rooms/:id (GET) - success 200', async () => {
         return request(app.getHttpServer())
           .get('/rooms/' + roomId)
-          .send(testDto)
+          .send(roomTestDto)
           .expect(200)
           .then(({ body }: request.Response) => {
             expect(roomId === body._id).toBe(true);
@@ -56,7 +57,7 @@ describe('RoomsController (e2e)', () => {
       it('/rooms/:id (GET) - fail 404', () => {
         return request(app.getHttpServer())
           .get(`/room/${randomId}`)
-          .send(testDto)
+          .send(roomTestDto)
           .expect(404);
       });
     });
@@ -65,10 +66,9 @@ describe('RoomsController (e2e)', () => {
       it('/rooms/:id (PATCH) - success 200', async () => {
         const patchDto: RoomIdDto = {
           id: new Types.ObjectId(roomId),
-          ...testDto,
+          ...roomTestDto,
           description: 'тест пройден!',
         };
-
         await request(app.getHttpServer())
           .patch('/rooms/' + roomId)
           .send(patchDto)
@@ -78,7 +78,7 @@ describe('RoomsController (e2e)', () => {
       it('/rooms/:id (PATCH) - fail 404', async () => {
         const patchDto: RoomIdDto = {
           id: new Types.ObjectId(roomId),
-          ...testDto,
+          ...roomTestDto,
           description: 'тест не пройден!',
         };
 
@@ -118,7 +118,7 @@ describe('RoomsController (e2e)', () => {
         return request(app.getHttpServer())
           .post('/rooms/create')
           .send({
-            ...testDto,
+            ...roomTestDto,
             room_number: 1,
             room_type: 5,
           })
@@ -128,7 +128,7 @@ describe('RoomsController (e2e)', () => {
         return request(app.getHttpServer())
           .post('/rooms/create')
           .send({
-            ...testDto,
+            ...roomTestDto,
             sea_view: 'not_boolean',
           })
           .expect(400);
@@ -137,7 +137,7 @@ describe('RoomsController (e2e)', () => {
         return request(app.getHttpServer())
           .post('/rooms/create')
           .send({
-            ...testDto,
+            ...roomTestDto,
             room_number: 32,
           })
           .expect(400);
