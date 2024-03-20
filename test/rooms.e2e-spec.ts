@@ -142,6 +142,15 @@ describe('RoomsController (e2e)', () => {
           })
           .expect(400);
       });
+      it('/rooms/patch (POST) 400 validation error (room_number)', () => {
+        return request(app.getHttpServer())
+          .patch('/rooms/' + roomId)
+          .send({
+            ...roomTestDto,
+            room_number: 32,
+          })
+          .expect(400);
+      });
 
       it('/rooms (GET) 400 id must be a mongodb id', () => {
         return request(app.getHttpServer()).get('/rooms/0').expect(400);
