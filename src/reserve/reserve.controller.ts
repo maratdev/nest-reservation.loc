@@ -12,6 +12,8 @@ import {
   Patch,
   Post,
   Res,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ReserveService } from './reserve.service';
 import { ReserveDto } from './dto/reserve.dto';
@@ -20,6 +22,7 @@ import { RESERVE } from './constants';
 import { ROOM } from '../rooms/constants';
 import { STATUS } from '../config/constants/default';
 
+@UsePipes(new ValidationPipe())
 @Controller('reserve')
 export class ReserveController {
   @Inject()
@@ -92,8 +95,9 @@ export class ReserveController {
         }
 
         if (err.getStatus() === HttpStatus.CONFLICT) {
+          console.log(err.getResponse());
           throw new ConflictException(
-            `${RESERVE.UPDATE_CONFLICT} ${err.getResponse()}`,
+            `${RESERVE.UPDATE_CONFLICT} ${String(err.getResponse())}`,
           );
         }
 

@@ -29,7 +29,7 @@ export class ReserveService {
 
   //--------- Создание брони
   async createReserve(reserve: ReserveDto): Promise<ReserveModel> {
-    await this.roomService.checkRoomById(new Types.ObjectId(reserve.room_id));
+    await this.roomService.checkRoomById(reserve.room_id);
     await this.checkDuplicateReserve(reserve);
 
     const createReserve = new this.reserveModel(reserve);

@@ -5,7 +5,9 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export enum RoomTypes {
@@ -20,6 +22,8 @@ export type TRoomType = (typeof RoomTypes)[keyof typeof RoomTypes];
 export class RoomDto {
   @IsNumber()
   @IsNotEmpty()
+  @Max(31)
+  @Min(1)
   readonly room_number: number;
 
   @IsNumber()
@@ -33,6 +37,7 @@ export class RoomDto {
   readonly description: string;
 
   @IsBoolean()
+  @IsNotEmpty()
   readonly sea_view: boolean;
 
   @IsBoolean()

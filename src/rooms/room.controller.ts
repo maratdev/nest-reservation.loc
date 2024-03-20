@@ -12,21 +12,22 @@ import {
   Patch,
   Post,
   Res,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { RoomService } from './room.service';
 import { RoomDto } from './dto/room.dto';
 import { RoomIdDto } from './dto/roomId.dto';
-import { GetIdReserveDto } from '../reserve/dto/reserve-id.dto';
 import { STATUS } from '../config/constants/default';
 import { ROOM } from './constants';
 import { MongoError } from 'mongodb';
 
+@UsePipes(new ValidationPipe())
 @Controller('rooms')
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
 
   // -----------------Вывод всех комнат
-
   @Get('all')
   async getAllRoom(@Res() response) {
     try {
@@ -111,7 +112,7 @@ export class RoomController {
 
   //--------- Запрос комнаты по id
   @Get('/:id')
-  async getReserve(@Res() response, @Param() objId: GetIdReserveDto) {
+  async getReserve(@Res() response, @Param() objId: RoomIdDto) {
     try {
       const existingRoom = await this.roomService.getRoom(objId);
       return response.status(HttpStatus.OK).json(existingRoom);

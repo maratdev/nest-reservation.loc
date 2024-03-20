@@ -65,7 +65,7 @@ export class RoomService {
   // -----------------Поиск комнаты по id
   public async checkRoomById(id: Types.ObjectId): Promise<boolean> {
     const checkRoom = await this.roomsModel.findOne({
-      _id: new Types.ObjectId(id),
+      _id: id,
       is_delete: false,
     });
     if (!checkRoom)
